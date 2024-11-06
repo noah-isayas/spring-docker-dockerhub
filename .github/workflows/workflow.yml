@@ -1,4 +1,4 @@
-name: Publish Docker image
+name: Publish Docker Image
 
 on:
   push:
@@ -7,19 +7,34 @@ on:
 
 jobs:
   push_to_registry:
-    name: Push Docker image to ECR
+    name: Push Docker Image to ECR
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repo
         uses: actions/checkout@v2
 
-      - name: Build and push Docker image
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-1
+
+      - name: Login to Amazon ECR
         run: |
           aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin 244530008913.dkr.ecr.eu-west-1.amazonaws.com
+
+      - name: Build Docker Image
+        run: |
           rev=$(git rev-parse --short HEAD)
-          docker build . -t hello
-          docker tag hello 244530008913.dkr.ecr.eu-west-1.amazonaws.com/glenn:$rev
-          docker push 244530008913.dkr.ecr.eu-west-1.amazonaws.com/glenn:$rev
+          docker build . -t first-image-nhi
+
+      - name: Tag Docker Image
+        run: |
+          rev=$(git rev-parse --short HEAD)
+          docker tag first-image-nhi 244530008913.dkr.ecr.eu-west-1.amazonaws.com/first-image-nhi:$rev
+
+      - name: Push Docker Image to ECR
+        run: |
+          rev=$(git rev-parse --short HEAD)
+          docker push 244530008913.dkr.ecr.eu-west-1.amazonaws.com/first-image-nhi:$rev
